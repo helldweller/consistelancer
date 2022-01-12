@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	upstreams Upstreams
+    upstreams Upstreams
 )
 
 type Upstream struct {
@@ -24,12 +24,12 @@ func (u *Upstreams) AddItem(item Upstream) []Upstream {
 }
 
 func (u *Upstreams) MarshalBinary() ([]byte, error) {
-	return json.Marshal(u)
+    return json.Marshal(u)
 }
 
 func (u *Upstreams) UnmarshalBinary(data []byte) error {
-	if err := json.Unmarshal(data, &u); err != nil {
-		return err
-	}
-	return nil
+    if err := json.Unmarshal(data, &u); err != nil {
+        return err
+    }
+    return nil
 }
