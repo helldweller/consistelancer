@@ -1,12 +1,11 @@
-package main
-// перенести в db
+package db
 
 import (
     "encoding/json"
 )
 
 var (
-    upstreams Upstreams
+    UpstreamList Upstreams
 )
 
 type Upstream struct {

@@ -7,54 +7,42 @@ import (
     "fmt"
     "io/ioutil"
     "time"
-    // "reflect"
     "net/http"
 
     gjson "github.com/tidwall/gjson"
     log "github.com/sirupsen/logrus"
     "package/main/locker"
+    "package/main/db"
 )
 
-func k8sApiWatcher(interval int, msgChannel chan Upstreams, groupCtx context.Context) error {
+func k8sApiWatcher(interval int, msgChannel chan db.Upstreams, groupCtx context.Context) error {
     log.Info("Starting k8sApiWatcher")
     ticker := time.NewTicker(time.Duration(interval) * time.Second)
-    lockclient := locker.Initialize(groupCtx, interval+1, config.RedisHost + ":" + config.RedisPort)
+    lockclient := locker.Initialize(groupCtx, config.RedisHost + ":" + config.RedisPort)
     for {
         select {
         case <-ticker.C:
-            err := lockclient.Obtain(groupCtx)
-            if err != nil {
+            if !lockclient.IsMaster() {
+                log.Info("I'am slave!")
                 continue
             }
-            defer lockclient.Release(groupCtx)
-            for {
-                select {
-                case <-ticker.C:
-                    if !lockclient.IsMaster(groupCtx) {
-                        continue
-                    }
-                    result, err := getEndpoints(config.K8sService)
-                    if err != nil {
-                        log.Error(err)
-                        //return err
-                    }
-                    msgChannel<- result
-                case <-groupCtx.Done():
-                    log.Error("Closing k8sApiWatcher goroutine")
-                    return groupCtx.Err()
-                }
+            result, err := getEndpoints(config.K8sService)
+            if err != nil {
+                log.Error(err)
+                //return err
             }
+            msgChannel<- result
         case <-groupCtx.Done():
             log.Error("Closing k8sApiWatcher goroutine")
+            lockclient.Close()
             return groupCtx.Err()
         }
     }
-    defer lockclient.Release(groupCtx)
     return nil
 }
 
-func getEndpoints(k8sServiceName string) (Upstreams, error) {
-    result := Upstreams{}
+func getEndpoints(k8sServiceName string) (db.Upstreams, error) {
+    result := db.Upstreams{}
     tr := &http.Transport{
         TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
     }
@@ -86,8 +74,8 @@ func getEndpoints(k8sServiceName string) (Upstreams, error) {
     return result, nil
 }
 
-func parseUpstreamList(json []byte) (Upstreams, error) {
-    result := Upstreams{}
+func parseUpstreamList(json []byte) (db.Upstreams, error) {
+    result := db.Upstreams{}
     var err error = nil
     scheme := ""
     ips := gjson.GetBytes(json, "subsets.#.addresses.#.ip|@flatten")
@@ -102,7 +90,7 @@ func parseUpstreamList(json []byte) (Upstreams, error) {
             } else {
                 scheme = "http"
             }
-            upstream := Upstream{Host: ip.String(), Port: port.String(), Scheme: scheme}
+            upstream := db.Upstream{Host: ip.String(), Port: port.String(), Scheme: scheme}
             result.AddItem(upstream)
         }
     }

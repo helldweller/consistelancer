@@ -3,14 +3,12 @@ package main
 import (
     "context"
     "fmt"
-    // "time"
-    // "reflect"
 
     log "github.com/sirupsen/logrus"
     "package/main/db"
 )
 
-func writeUpstreams(inputChannel chan Upstreams, rdb *db.RedisClient, groupCtx context.Context) error {
+func writeUpstreams(inputChannel chan db.Upstreams, rdb *db.RedisClient, groupCtx context.Context) error {
     log.Info("Starting writeUpstreams worker")
     for {
         select {

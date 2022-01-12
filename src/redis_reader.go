@@ -4,7 +4,6 @@ import (
     "context"
     "fmt"
     "encoding/json"
-    // "time"
     "reflect"
 
     log "github.com/sirupsen/logrus"
@@ -16,13 +15,13 @@ func readUpstreams(rdb *db.RedisClient, groupCtx context.Context) error {
     for {
         select {
         case msg  := <-rdb.Channel:
-            result := Upstreams{}
+            result := db.Upstreams{}
             if err := json.Unmarshal([]byte(msg.Payload), &result); err != nil {
                 log.Error(fmt.Sprintf("Cant Unmarshal received msg: %s", err))
             }
-            if !reflect.DeepEqual(upstreams, result) {
-                log.Info(fmt.Sprintf("Upstreams was updated: was %v, now %v", upstreams, result))
-                upstreams = result
+            if !reflect.DeepEqual(db.UpstreamList, result) {
+                log.Info(fmt.Sprintf("Upstreams was updated: was %v, now %v", db.UpstreamList, result))
+                db.UpstreamList = result
             }
         case <-groupCtx.Done():
             log.Error("Closing readUpstreams goroutine")

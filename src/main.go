@@ -6,9 +6,7 @@ import (
     "fmt"
     "os"
     "os/signal"
-    // "reflect"
     "syscall"
-    //"time"
 
     "golang.org/x/sync/errgroup"
     log "github.com/sirupsen/logrus"
@@ -19,10 +17,10 @@ func main() {
     log.Info("Starting app")
     ctx, cancel := context.WithCancel(context.Background())
     group, groupCtx := errgroup.WithContext(ctx)
-    msgChannel := make(chan Upstreams,1)
+    msgChannel := make(chan db.Upstreams, 1)
 
     rdb := db.Initialize(groupCtx, config.RedisHost + ":" + config.RedisPort)
-    defer db.Close()
+    defer rdb.Close(groupCtx)
     
     // goroutine to check for signals to gracefully finish all functions
     group.Go(func() error {
@@ -59,10 +57,6 @@ func main() {
     group.Go(func() error {
         interval := 1
         return dbChecker(interval, groupCtx)
-    })
-
-    group.Go(func() error {
-        return nil // just test
     })
 
     err := group.Wait()

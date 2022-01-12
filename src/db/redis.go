@@ -3,7 +3,6 @@ package db
 import (
     "encoding/json"
     "time"
-    // "fmt"
     "context"
 
     "github.com/go-redis/redis/v8"
@@ -12,11 +11,12 @@ import (
 
 var (
     rdb = &RedisClient{}
+    subscribeTo = "upstreams"
 )
 
 type RedisClient struct {
     client *redis.Client
-    // pubsub *redis.PubSub
+    pubsub *redis.PubSub
     Channel <-chan *redis.Message
 }
 
@@ -28,13 +28,14 @@ func Initialize(ctx context.Context, addr string) *RedisClient {
         log.Error("Unable to connect to redis " + err.Error())
     }
     rdb.client = client
-    pubsub := rdb.client.Subscribe(ctx, "upstreams")
-    rdb.Channel = pubsub.Channel()
+    rdb.pubsub = rdb.client.Subscribe(ctx, subscribeTo)
+    rdb.Channel = rdb.pubsub.Channel()
     return rdb
 }
 
-func Close() {
-    // func (c *PubSub) Unsubscribe(ctx context.Context, channels ...string) error
+func (rdb *RedisClient) Close(ctx context.Context) {
+    rdb.pubsub.Unsubscribe(ctx, subscribeTo)
+    rdb.pubsub.Close()
     rdb.client.Close()
 }
 

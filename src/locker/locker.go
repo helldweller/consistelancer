@@ -2,84 +2,49 @@ package locker
 
 import (
     "context"
-    "fmt"
-    "time"
-    // "math/rand"
 
-    "github.com/go-redis/redis/v8"
+	goredislib "github.com/go-redis/redis/v8"
     log "github.com/sirupsen/logrus"
-    "github.com/bsm/redislock"
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v8"
+    
 )
-
 
 var (
     locker = &RedislockClient{}
-    lockerKey = "lock"
+    mutexname = "lock"
 )
 
 type RedislockClient struct {
-    rdbclient *redis.Client
-    client *redislock.Client
-    lock *redislock.Lock
-    lockTtl time.Duration
+    rdbclient *goredislib.Client
+    mutex *redsync.Mutex
+    // lockTtl time.Duration
 }
 
-func Initialize(ctx context.Context, ttl int, redisAddr string) *RedislockClient {
-    rdbclient := redis.NewClient(&redis.Options{
-        Addr: redisAddr,
-    })
-    if err := rdbclient.Ping(ctx).Err(); err != nil {
+func Initialize(ctx context.Context, redisAddr string) *RedislockClient {
+	locker.rdbclient = goredislib.NewClient(&goredislib.Options{
+		Addr: redisAddr,
+	})
+    if err := locker.rdbclient.Ping(ctx).Err(); err != nil {
         log.Fatal("Redis is offline")
     }
-    locker.lockTtl = time.Duration(ttl) * time.Second
-    locker.rdbclient = rdbclient
-    locker.client = redislock.New(rdbclient)
-    return locker
-}
-
-func (locker *RedislockClient) Release(ctx context.Context) {
-    locker.lock.Release(ctx)
+	pool := goredis.NewPool(locker.rdbclient)
+	rs := redsync.New(pool)
+	locker.mutex = rs.NewMutex(mutexname)
+	return locker
 }
 
 func (locker *RedislockClient) Close() {
-    locker.rdbclient.Close()
+    locker.mutex.Unlock()
+	locker.rdbclient.Close()
 }
 
-func (locker *RedislockClient) Obtain(ctx context.Context) error {
-    lock, err := locker.client.Obtain(ctx, lockerKey, locker.lockTtl, nil)
-    if err == nil {
-        locker.lock = lock
-    }
-    return err
-}
-
-func (locker *RedislockClient) IsMasterOld(ctx context.Context) bool {
-    result := false
-    ttl, err := locker.lock.TTL(ctx)
-    if (err == nil) || (ttl > 0) {
-        if err := locker.lock.Refresh(ctx, locker.lockTtl, nil); err != nil {
-            fmt.Println(err)
-            return result
-        }
-        result = true
-    }
-    return result
-}
-
-func (locker *RedislockClient) IsMaster(ctx context.Context) (result bool) {
-    result = false
-    lock, err := locker.client.Obtain(ctx, lockerKey, locker.lockTtl, nil)
-    if err != nil {
-        return
-    }
-    locker.lock = lock
-    ttl, err := locker.lock.TTL(ctx)
-    if (err == nil) || (ttl > 0) {
-        if err := locker.lock.Refresh(ctx, locker.lockTtl, nil); err != nil {
-            log.Error(err)
-            return
-        }
-        result = true
-    }
-    return
+func (locker *RedislockClient) IsMaster() bool {
+	if ok, err := locker.mutex.Extend(); ok && err == nil {
+		return true
+	}
+	if err := locker.mutex.Lock(); err == nil {
+		return true
+	}
+	return false
 }
