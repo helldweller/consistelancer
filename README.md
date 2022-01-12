@@ -1,6 +1,7 @@
 
 ## Setup
-    kubectl -n test apply -f k8s-env.yaml
+    minikube start
+    kubectl apply -f k8s-env.yaml
     skaffold dev
 
 ## to do
@@ -14,4 +15,6 @@
 + Логика выбор апстрима
 + Хелфчеки
 + Метрики
++ Unit тесты
++ CI pipeline (мультибранч для тестов)
 + redis: 2022/01/08 09:08:17 pubsub.go:159: redis: discarding bad PubSub connection: read tcp 172.17.0.13:51324->10.101.37.77:6379: use of closed network connection
