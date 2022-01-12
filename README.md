@@ -27,3 +27,4 @@
 + redis cluster insted redis single node
 + <s>redis: 2022/01/08 09:08:17 pubsub.go:159: redis: discarding bad PubSub connection: read tcp 172.17.0.13:51324->10.101.37.77:6379: use of closed network connection</s>
 + <s>lock in redis always changing. try write own locker</s>
++ k8s.io/client-go instead http client

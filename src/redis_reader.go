@@ -23,6 +23,8 @@ func readUpstreams(rdb *db.RedisClient, groupCtx context.Context) error {
                 log.Info(fmt.Sprintf("Upstreams was updated: was %v, now %v", db.UpstreamList, result))
                 db.UpstreamList = result
             }
+            // item := db.UpstreamList.GetRandomItem()
+            // log.Info(item)
         case <-groupCtx.Done():
             log.Error("Closing readUpstreams goroutine")
             return groupCtx.Err()

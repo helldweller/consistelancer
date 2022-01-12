@@ -2,6 +2,7 @@ package db
 
 import (
     "encoding/json"
+    "math/rand"
 )
 
 var (
@@ -31,4 +32,9 @@ func (u *Upstreams) UnmarshalBinary(data []byte) error {
         return err
     }
     return nil
+}
+
+func (u *Upstreams) GetRandomItem() Upstream {
+	i := rand.Intn(len(u.Items))
+	return u.Items[i]
 }

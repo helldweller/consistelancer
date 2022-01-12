@@ -29,7 +29,6 @@ func k8sApiWatcher(interval int, msgChannel chan db.Upstreams, groupCtx context.
             result, err := getEndpoints(config.K8sService)
             if err != nil {
                 log.Error(err)
-                //return err
             }
             msgChannel<- result
         case <-groupCtx.Done():
