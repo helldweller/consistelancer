@@ -1,3 +1,5 @@
+# https://skaffold.dev/docs/references/yaml/
+---
 apiVersion: skaffold/v2beta26
 kind: Config
 metadata:
@@ -5,9 +7,26 @@ metadata:
 build:
   artifacts:
   - image: consistelancer
-    docker:
-      dockerfile: Dockerfile
+    ko:
+      fromImage: alpine #golang:1.17-alpine
+      dir: src
+      dependencies:
+        paths:
+        - "src/*"
+        - "k8s/*"
+        - "skaffold.yaml"
+        ignore: []
+          # - README.md
+          # - LICENSE
+          # - example
 deploy:
   kubectl:
     manifests:
-      - k8s.yaml
+      - k8s/app.yaml
+portForward:
+  - resourceType: Service
+    resourceName: consistelancer
+    namespace: test
+    port: 8080
+    address: 127.0.0.1
+    localPort: 8080

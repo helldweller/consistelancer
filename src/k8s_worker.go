@@ -16,6 +16,7 @@ import (
 )
 
 func k8sApiWatcher(interval int, msgChannel chan db.Upstreams, groupCtx context.Context) error {
+    defer close(msgChannel)
     log.Info("Starting k8sApiWatcher")
     ticker := time.NewTicker(time.Duration(interval) * time.Second)
     lockclient := locker.Initialize(groupCtx, config.RedisHost + ":" + config.RedisPort)

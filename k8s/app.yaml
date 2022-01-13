@@ -1,0 +1,64 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: consistelancer
+  namespace: test
+data:
+  config.yaml: |
+    ---
+    host: 127.0.0.1
+    port: 8081
+    logLevel: info
+    k8sService: test-web2
+    # redisHost: redis
+    # redisPort: 6379
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consistelancer
+  namespace: test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consistelancer
+  template:
+    metadata:
+      labels:
+        app: consistelancer
+    spec:
+      serviceAccountName: consistelancer
+      containers:
+        - name: app
+          # imagePullPolicy: Never
+          image: consistelancer
+          resources: {}
+          volumeMounts:
+            - name: config
+              mountPath: /ko-app/config.yaml
+              subPath: config.yaml
+          # env:
+          #   - name: LOG_LEVEL
+          #     value: info
+      volumes:
+        - name: config
+          configMap:
+            name: consistelancer
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consistelancer
+  namespace: test
+spec:
+  type: ClusterIP
+  selector:
+    app: consistelancer
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP

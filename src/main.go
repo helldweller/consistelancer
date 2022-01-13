@@ -25,6 +25,7 @@ func main() {
     // goroutine to check for signals to gracefully finish all functions
     group.Go(func() error {
         signalChannel := make(chan os.Signal, 1)
+        defer close(signalChannel)
         signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
         select {
         case sig := <-signalChannel:

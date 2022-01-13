@@ -22,12 +22,12 @@ type Config struct {
 
 var (
     config Config
-    k8sTokenPath string = "/run/secrets/kubernetes.io/serviceaccount/token"
-    k8sNamespacePath string = "/run/secrets/kubernetes.io/serviceaccount/namespace"
+    k8sTokenPath string = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    k8sNamespacePath string = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 )
 
 func init() {
-    err := cleanenv.ReadConfig("config.yaml", &config)
+    err := cleanenv.ReadConfig("/ko-app/config.yaml", &config)
     if err != nil {
         log.Error("Can`t read config.yaml")
     }
