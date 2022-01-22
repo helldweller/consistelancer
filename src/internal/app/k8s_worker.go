@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
     "context"
@@ -8,18 +8,19 @@ import (
     "io/ioutil"
     "time"
     "net/http"
-
     gjson "github.com/tidwall/gjson"
-    log "github.com/sirupsen/logrus"
-    "package/main/locker"
-    "package/main/db"
+
+    log "package/main/internal/logger"
+    "package/main/internal/config"
+    "package/main/internal/locker"
+    "package/main/internal/db"
 )
 
-func k8sApiWatcher(interval int, msgChannel chan db.Upstreams, groupCtx context.Context) error {
+func k8sApiWatcher(groupCtx context.Context, interval int, msgChannel chan db.Upstreams, conf *config.Config) error {
     defer close(msgChannel)
     log.Info("Starting k8sApiWatcher")
     ticker := time.NewTicker(time.Duration(interval) * time.Second)
-    lockclient := locker.Initialize(groupCtx, config.RedisHost + ":" + config.RedisPort)
+    lockclient := locker.Initialize(groupCtx, conf.RedisHost + ":" + conf.RedisPort)
     for {
         select {
         case <-ticker.C:
@@ -27,9 +28,9 @@ func k8sApiWatcher(interval int, msgChannel chan db.Upstreams, groupCtx context.
                 log.Info("I'am slave!")
                 continue
             }
-            result, err := getEndpoints(config.K8sService)
+            result, err := getEndpoints(conf)
             if err != nil {
-                log.Error(err)
+                log.Error(err.Error())
             }
             msgChannel<- result
         case <-groupCtx.Done():
@@ -41,19 +42,19 @@ func k8sApiWatcher(interval int, msgChannel chan db.Upstreams, groupCtx context.
     return nil
 }
 
-func getEndpoints(k8sServiceName string) (db.Upstreams, error) {
+func getEndpoints(conf *config.Config) (db.Upstreams, error) {
     result := db.Upstreams{}
     tr := &http.Transport{
         TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
     }
     client := &http.Client{Transport: tr}
-    reqUri := "https://" + config.K8sApiHost + ":" + config.K8sApiPort + "/api/v1/namespaces/" + config.K8sNamespace + "/endpoints/" + k8sServiceName
+    reqUri := "https://" + conf.K8sApiHost + ":" + conf.K8sApiPort + "/api/v1/namespaces/" + conf.K8sNamespace + "/endpoints/" + conf.K8sService
     req, err := http.NewRequest("GET", string(reqUri), nil)
     if err != nil {
         return result, err
     }
     req.Header.Add("Accept", "application/json")
-    req.Header.Add("Authorization", "Bearer " + config.K8sToken)
+    req.Header.Add("Authorization", "Bearer " + conf.K8sToken)
     resp, err := client.Do(req)
     if err != nil {
         return result, err

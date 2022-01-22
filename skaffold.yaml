@@ -9,24 +9,21 @@ build:
   - image: consistelancer
     ko:
       fromImage: alpine #golang:1.17-alpine
-      dir: src
+      dir: src/cmd/app
       dependencies:
         paths:
         - "src/*"
         - "k8s/*"
         - "skaffold.yaml"
         ignore: []
-          # - README.md
-          # - LICENSE
-          # - example
 deploy:
   kubectl:
     manifests:
       - k8s/app.yaml
-portForward:
-  - resourceType: Service
-    resourceName: consistelancer
-    namespace: test
-    port: 8080
-    address: 127.0.0.1
-    localPort: 8080
+# portForward:
+#   - resourceType: Service
+#     resourceName: consistelancer
+#     namespace: test
+#     port: 8080
+#     address: 127.0.0.1
+#     localPort: 8080

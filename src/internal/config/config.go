@@ -1,9 +1,9 @@
-package main
+package config
 
 import (
     "io/ioutil"
+    "errors"
 
-    log "github.com/sirupsen/logrus"
     "github.com/ilyakaznacheev/cleanenv"
 )
 
@@ -22,23 +22,25 @@ type Config struct {
 
 var (
     config Config
-    k8sTokenPath string = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    configPath string       = "/ko-app/config.yaml"
+    k8sTokenPath string     = "/var/run/secrets/kubernetes.io/serviceaccount/token"
     k8sNamespacePath string = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 )
 
-func init() {
-    err := cleanenv.ReadConfig("/ko-app/config.yaml", &config)
+func Init() (*Config, error) {
+    err := cleanenv.ReadConfig(configPath, &config)
     if err != nil {
-        log.Error("Can`t read config.yaml")
+		return &config, errors.New("Can`t read config.yaml")
     }
     k8sToken, err := ioutil.ReadFile(k8sTokenPath)
     if err != nil {
-        log.Fatal(err)
+        return &config, err
     }
     k8sNamespace, err := ioutil.ReadFile(k8sNamespacePath)
     if err != nil { 
-        log.Fatal(err)
+        return &config, err
     }
     config.K8sToken = string(k8sToken)
     config.K8sNamespace = string(k8sNamespace)
+	return &config, nil
 }

@@ -30,3 +30,4 @@
 + k8s.io/client-go instead http client
 + <s>skaffold local build instead dockerfile. try ko</s>
 + <s>defer close chan</s>
++ <s>change package layout</s>

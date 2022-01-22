@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
     "context"
@@ -6,11 +6,11 @@ import (
     "encoding/json"
     "reflect"
 
-    log "github.com/sirupsen/logrus"
-    "package/main/db"
+    log "package/main/internal/logger"
+    "package/main/internal/db"
 )
 
-func readUpstreams(rdb *db.RedisClient, groupCtx context.Context) error {
+func readUpstreams(groupCtx context.Context, rdb *db.RedisClient) error {
     log.Info("Starting readUpstreams worker")
     for {
         select {

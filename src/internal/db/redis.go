@@ -4,9 +4,9 @@ import (
     "encoding/json"
     "time"
     "context"
-
     "github.com/go-redis/redis/v8"
-    log "github.com/sirupsen/logrus"
+
+    log "package/main/internal/logger"
 )
 
 var (

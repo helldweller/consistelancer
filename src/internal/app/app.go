@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
     "context"
@@ -7,19 +7,31 @@ import (
     "os"
     "os/signal"
     "syscall"
-
     "golang.org/x/sync/errgroup"
-    log "github.com/sirupsen/logrus"
-    "package/main/db"
+
+	log "package/main/internal/logger"
+    "package/main/internal/db"
+	"package/main/internal/config"
 )
 
-func main() {
+func Run() {
+	conf, err := config.Init()
+    if err != nil && conf == nil {
+        log.Fatal(err.Error())
+    }
+    if err != nil && conf != nil {
+        log.Error(err.Error())
+    }
+    
+    log.Init(conf.Loglevel)
     log.Info("Starting app")
+
     ctx, cancel := context.WithCancel(context.Background())
     group, groupCtx := errgroup.WithContext(ctx)
-    msgChannel := make(chan db.Upstreams, 1)
+    upstreamChannel := make(chan db.Upstreams, 1)
+	defer close(upstreamChannel)
 
-    rdb := db.Initialize(groupCtx, config.RedisHost + ":" + config.RedisPort)
+    rdb := db.Initialize(groupCtx, conf.RedisHost + ":" + conf.RedisPort)
     defer rdb.Close(groupCtx)
     
     // goroutine to check for signals to gracefully finish all functions
@@ -41,26 +53,26 @@ func main() {
     // goroutine to run k8sApiWatcher worker
     group.Go(func() error {
         interval := 3
-        return k8sApiWatcher(interval, msgChannel, groupCtx)
+        return k8sApiWatcher(groupCtx, interval, upstreamChannel, conf)
     })
 
     // goroutine to run writeUpstreams worker
     group.Go(func() error {
-        return writeUpstreams(msgChannel, rdb, groupCtx)
+        return writeUpstreams(groupCtx, upstreamChannel, rdb)
     })
 
     // goroutine to run readUpstreams worker
     group.Go(func() error {
-        return readUpstreams(rdb, groupCtx)
+        return readUpstreams(groupCtx, rdb)
     })
     
     // goroutine to run dbChecker worker
     group.Go(func() error {
         interval := 1
-        return dbChecker(interval, groupCtx)
+        return dbChecker(groupCtx, interval, conf)
     })
 
-    err := group.Wait()
+    err = group.Wait()
     if err != nil {
         if errors.Is(err, context.Canceled) {
             log.Error("Context was canceled")

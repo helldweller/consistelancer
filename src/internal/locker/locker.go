@@ -2,12 +2,11 @@ package locker
 
 import (
     "context"
-
-	goredislib "github.com/go-redis/redis/v8"
-    log "github.com/sirupsen/logrus"
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v8"
-    
+	goredislib "github.com/go-redis/redis/v8"
+
+    log "package/main/internal/logger"
 )
 
 var (
